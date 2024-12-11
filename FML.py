@@ -151,6 +151,11 @@ class FML:
         """
         Check if the inputs shape, type, and index is correct.
         
+        The expected dataframe should have the following conditions:
+        - a multiindex of ['id', 'cycle'] where 'id' is the unique identifier for each time series and 'cycle' is the index of the time series.
+        - a single column 'wvf' if input_type is 'time', where 'wvf' is the single cardiac cycle that is being analyzed.
+        - multiple columns if input_type is 'frequency', where each column represents a frequency component of the signal. The columns are the real and imaginary parts of the FFT. Note: excludes first imaginary part as it is always zero. 
+
         Parameters:
         -----------
         inputs : pd.DataFrame
@@ -204,6 +209,11 @@ class FML:
         """
         Check if the targets shape, type, and index is correct.
         
+        The expected dataframe should have the following conditions:
+        - a multiindex of ['id', 'cycle'] where 'id' is the unique identifier for each time series and 'cycle' is the index of the time series.
+        - a single column 'wvf' if input_type is 'time', where 'wvf' is the single cardiac cycle that is being analyzed.
+        - multiple columns if input_type is 'frequency', where each column represents a frequency component of the signal. The columns are the real and imaginary parts of the FFT. Note: excludes first imaginary part as it is always zero. 
+
         Parameters:
         -----------
         targets : pd.DataFrame
