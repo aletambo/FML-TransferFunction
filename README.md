@@ -15,14 +15,18 @@ pip install -r requirements.txt
 
 ## Quickstart
 After you have installed the library, you can start training the F-ML Transfer Function method as shown below:
-```bash
+```python
 from FML import FML
+
+# Initialize the F-ML Transfer Function
 fml = FML(
     input_modes=20,
     target_modes=20,
     name='F-ML Transfer Function', 
     samp_freq=1000
-    )
+)
+
+# Train the model with input and target data
 fml.train(inputs, targets)
 ```
 
