@@ -42,7 +42,29 @@ class FML:
         self.scaler = MinMaxScaler()
 
     def train(self, inputs, targets, input_type='time', target_type='time'):
-        """ Train the model using the inputs and targets """
+        """
+        Train the model using the inputs and targets.
+        
+        Parameters:
+        -----------
+        inputs : pd.DataFrame
+            The input data for training. Can be in time or frequency domain.
+        targets : pd.DataFrame
+            The target data for training. Can be in time or frequency domain.
+        input_type : str, optional
+            The type of input data, either 'time' or 'frequency'. Default is 'time'.
+        target_type : str, optional
+            The type of target data, either 'time' or 'frequency'. Default is 'time'.
+        
+        Returns:
+        --------
+        None
+        """
+        # check that input_type and target_type are valid
+        if input_type not in ['time', 'frequency']:
+            raise ValueError(f"input_type should be 'time' or 'frequency', but got {input_type}")
+        if target_type not in ['time', 'frequency']:
+            raise ValueError(f"target_type should be 'time' or 'frequency', but got {target_type}")
 
         # check that inputs and targets are in correct form
         self.check_inputs(inputs, input_type)
@@ -72,8 +94,30 @@ class FML:
             self.models[col].fit(inputs_freq, targets_freq[col], sample_weight=sample_weights)
 
     def predict(self, inputs, input_type='time', target_type='time'):
-        """ Predict the target using the inputs """
-
+        """
+        Predict the target using the inputs.
+        
+        Parameters:
+        -----------
+        inputs : pd.DataFrame
+            The input data for prediction. It can in either the time or frequency domain.
+        input_type : str, optional
+            The type of input data, either 'time' or 'frequency'. Default is 'time'.
+        target_type : str, optional
+            The type of target data, either 'time' or 'frequency'. Default is 'time'.
+        
+        Returns:
+        --------
+        pd.DataFrame
+            The predicted target data. If target_type is 'time', the predictions are returned in the time domain.
+            Otherwise, the predictions are returned in the frequency domain.
+        """
+        # check that input_type and target_type are valid
+        if input_type not in ['time', 'frequency']:
+            raise ValueError(f"input_type should be 'time' or 'frequency', but got {input_type}")
+        if target_type not in ['time', 'frequency']:
+            raise ValueError(f"target_type should be 'time' or 'frequency', but got {target_type}")
+        
         # check that inputs are in correct form
         self.check_inputs(inputs, input_type)
 
@@ -104,8 +148,29 @@ class FML:
             return predictions
         
     def check_inputs(self, inputs, input_type):
-        """ Check if the inputs shape, type, and index is correct """
-
+        """
+        Check if the inputs shape, type, and index is correct.
+        
+        Parameters:
+        -----------
+        inputs : pd.DataFrame
+            The input data to be checked. It should be a pandas DataFrame.
+        input_type : str
+            The type of input data. It can be either 'time' or 'frequency'.
+        
+        Raises:
+        -------
+        ValueError
+            If the inputs are not a pandas DataFrame.
+            If the inputs do not have a multiindex of ['id', 'cycle'].
+            If the input_type is 'time' and the inputs do not have a single column named 'wvf'.
+            If the input_type is 'frequency' and the inputs do not have the correct shape or columns.
+        
+        Returns:
+        --------
+        None
+        """
+        
         # check that inputs is a pandas dataframe
         if not isinstance(inputs, pd.DataFrame):
             raise ValueError(f"Inputs should be a pandas dataframe, but got {type(inputs)}")
@@ -136,7 +201,28 @@ class FML:
                 raise ValueError(f"Input columns should be {self.input_cols}, but got {inputs.columns}")
         
     def check_targets(self, targets, target_type):
-        """ Check if the targets shape, type, and index is correct """
+        """
+        Check if the targets shape, type, and index is correct.
+        
+        Parameters:
+        -----------
+        targets : pd.DataFrame
+            The targets dataframe to be checked. It should be a pandas DataFrame.
+        target_type : str
+            The type of the target, either 'time' or 'frequency'. This determines the expected shape and columns of the targets dataframe.
+        
+        Raises:
+        -------
+        ValueError
+            If the targets is not a pandas DataFrame.
+            If the targets do not have a multiindex of ['id', 'cycle'].
+            If the targets shape is incorrect for the given target_type.
+            If the targets columns are incorrect for the given target_type.
+        
+        Returns:
+        --------
+        None
+        """
 
         # check that targets is a pandas dataframe
         if not isinstance(targets, pd.DataFrame):
@@ -168,13 +254,54 @@ class FML:
                 raise ValueError(f"Input columns should be {self.input_cols}, but got {targets.columns}")
 
     def calculate_sample_weights(self, inputs):
-        """ Calculate the sample weights for the inputs """
+        """
+        Calculate the sample weights for the inputs.
+
+        This function calculates the sample weights for each input based on the 
+        frequency of the first level index values ('id'). The weight for each sample 
+        is computed as the inverse of the count of its corresponding index value.
+
+        Parameters:
+        -----------
+        inputs : pd.DataFrame
+            The input data for training.  The first level of the 
+            index is used to calculate the sample weights.
+
+        Returns:
+        --------
+        pd.Series
+            A pandas Series containing the sample weights for each input.
+        """
         index_cnt = inputs.index.get_level_values(0).value_counts()
         sample_weights = inputs.apply(lambda x: 1/index_cnt.loc[x.name[0]], axis=1)
         return sample_weights
 
     def time_to_frequency_transform(self, time_series, num_modes, cols):
-        """ Convert the time series to frequency domain """
+        """ 
+        Convert the time series to frequency domain.
+        
+        This function takes a time series dataset and converts it to the frequency domain using the real 
+        Fast Fourier Transform (rFFT). It extracts the cosine and sine components of the FFT up to a 
+        specified number of modes and returns a DataFrame containing these components along with the 
+        original length of each time series.
+        
+        Parameters:
+        -----------
+        time_series : pd.DataFrame
+            A DataFrame where each row contains a time series to be transformed. 
+            Each row should have a 'wvf' column containing the waveform data.
+        num_modes : int
+            The number of frequency modes to retain in the transformation.
+        cols : list of str
+            The column names for the resulting DataFrame, excluding the 'len' column 
+            which will be added automatically.
+        
+        Returns:
+        --------
+        pd.DataFrame
+            A DataFrame where each row contains the sine and cosine components of the FFT 
+            for the corresponding time series, along with the original length of the time series.
+        """
         
         # compute rfft on the time_series arrays
         arr_ffts = []
@@ -195,7 +322,26 @@ class FML:
         return df_ffts
 
     def frequency_to_time_transform(self, frequency_series):
-        """ Convert the frequency series to time domain """
+        """
+        Convert the frequency series to time domain.
+        
+        This function takes a frequency domain representation of a signal and 
+        converts it to the time domain using the inverse real Fourier transform (irfft).
+        
+        Parameters:
+        -----------
+        frequency_series : pd.DataFrame
+            A DataFrame where each row represents a frequency series with columns 'len', 
+            'cos_0', 'cos_1', ..., 'cos_n', 'sin_1', 'sin_2', ..., 'sin_n'. The 'len' column 
+            represents the length of the original time series, and 'cos_i' and 'sin_i' columns 
+            represent the cosine and sine components of the frequency series respectively.
+        
+        Returns:
+        --------
+        pd.DataFrame
+            A DataFrame with the same index as the input, containing a single column 'wvf' 
+            where each entry is the time domain representation of the corresponding frequency series.
+        """
         
         # compute the irfft on the frequency_series arrays
         times_series = []
@@ -219,16 +365,56 @@ class FML:
         return df_times
             
     def save(self):
-        """ Save the entire model class in the save_path directory as a .pkl file """
-            
+        """
+        Save the entire model class in the save_path directory as a .pkl file.
+        
+        This method serializes the current instance of the model class and saves it 
+        to a file in the specified directory. The filename is constructed using the 
+        model's name with a .pkl extension.
+        
+        Parameters:
+        -------
+        self : FML
+            The instance of the model class containing attributes such as 
+            save_path (the directory where the file will be saved) and model_name 
+            (the name of the model to be used in the filename).
+        
+        Returns:
+        --------
+        None
+        """    
         # save the model
         with open(os.path.join(self.save_path, f"{self.model_name}.pkl"), 'wb') as f:
             pickle.dump(self, f)
 
     @classmethod
     def load(cls, path, name="FML"):
-        """ Load the entire class from the specified path """
+        """
+        Load the entire class from the specified path.
+        This method deserializes and loads a previously saved class instance from a 
+        pickle file located at the given path.
         
+        Parameters:
+        -----------
+        path : str
+            The directory path where the pickle file is located.
+        name : str, optional
+            The base name of the pickle file (without extension). Defaults to "FML".
+        
+        Returns:
+        --------
+        object
+            The loaded class instance.
+        
+        Raises:
+        -------
+        FileNotFoundError
+            If the specified file does not exist.
+        IOError
+            If there is an error reading the file.
+        pickle.UnpicklingError
+            If there is an error unpickling the file.
+        """
         # load the model
         with open(os.path.join(path, f"{name}.pkl"), 'rb') as f:
             return pickle.load(f)
